@@ -20,6 +20,18 @@
 
 (fn [x y] (and (contains? y x) (= nil (x y))))
  
+;;------------------------------------------------------------
+;; #166 Comparisons  ???? I donot understand the instructions!
+;;------------------------------------------------------------
+(defn c [f x y]
+  (cond (< x y) :lt
+        (= x y) :eq
+        (> x y) :gt
+        :else :wtf?))
+
+ (= :gt (c < 5 1))
+
+;;------------------------------------------------------------
 ;; #156 Map defaults When retrieving values from a map, you can specify
 ;; default values in case the key is not found:
 ;; 
@@ -108,25 +120,25 @@ reduce #(do %2 (+ 1 %)) 0
 
 
 ;; ----------------------------------------------
-;; 23 reverse a sequence (without using reverse)
+;; #23 reverse a sequence (without using reverse)
 ;;------------------------------------------------------------
 (reduce #(apply str (cons %2  %1)) "" "hello" ) ; reverses a str
 
 (reduce #(println  %2 "!" %1 "!") "xx" "hello" ) ; examine reduce parms
 
 ;; ----------------------------------------------
-;; 27 Palindrome Detector
+;; #27 Palindrome Detector
 ;;------------------------------------------------------------
 ;; good answer:
 #(= (seq %) (reverse %))
 
 ;; my answer: 
 ((fn [sqnc] (loop [s sqnc]
-      (if (<= (count s) 1) truex
+      (if (<= (count s) 1) true
          (do
             (if (not= (first s) (last s)) false
                (recur (drop-last 1 (drop 1 s))))))
-              )) "aabxaa")
+              )) "aabaa")
 
 ;; ----------------------------------------------
 ;; #26 Fibonacci Sequence -
@@ -247,7 +259,7 @@ mapcat #(list % %)
 
 ;;------------------------------------------------------------
 ;; #28 Flatten a Sequence
-;; Write a function which removes consecutive duplicates from a sequence.
+;; a function to remove consecutive duplicates from a sequence.
 ;;------------------------------------------------------------
 ;; oops I cannot erase this solution which I plagerized!
 (fn flatten [x]
@@ -458,14 +470,8 @@ not=
 
 ;;------------------------------------------------------------
 ;; #99 Product digits
+;; multiply 2 numbers returning a sequence of its digits.
 ;;------------------------------------------------------------
-(defn z [x y] 
-  ((fn mkseq [j]
-      (loop [j j rslt [] ]
-        (if (= 0 j) 
-          rslt
-          (recur (quot j 10) (cons (rem j 10) rslt)))))
-   (* x y)))
 
 (fn [x y] 
   (loop [j (* x y) rslt [] ]
@@ -481,8 +487,10 @@ not=
 ;; #63 Group a Sequence
 ;;------------------------------------------------------------
 
+(
+  (fn [f s] (for [e s] [(f e) e] ))
 
-(   (fn [f s] (for [e s] [(f e) e] ))   #(> % 5) [1 3 6 8])
+   #(> % 5) [1 3 6 8])
 
 
 ;;---  demo of a working way to accumulate results in map m
@@ -542,16 +550,7 @@ not=
 ;;  
 ;;------------------------------------------------------------
 
-;; first try
-(defn rbin [strng] 
-  (loop [s (reverse strng) n 0 ans 0]
-    (if s 
-        (recur (next s) (inc n)
-           (+ ans (* (Math/pow 2 n)
-               (Character/digit (first s) 2)))  ) 
-        (int ans))))
-
-;; revised version 
+;; pwv  version 
 (fn rbin [strng] 
   (loop [s strng ans 0]
     (if s
@@ -690,11 +689,154 @@ map-indexed #(list %2 %)
 ;;  assumed to be valid.
 
 (defn po1 [s]
-  (prn s)
-  (cond (= s nil) true 
+  (cond (= s nil)  true 
         (and (coll? s) (= 3 (count s))) 
            (if  (po1 (nth s 1))  (po1 (nth s 2)) false) 
         :else false))
 
-(po1 [0 [12 nil nil] [11 [31 nil nil ] [51 nil nil]] ])
+(po1 [0 [12 nil nil] [11 [22 nil [31 nil nil] ] [21 nil nil]] ])
 
+
+(defn pov [s]
+  (prn s)
+  (cond (= s nil) true 
+        (and (coll? s) (= 3 (count s))) 
+           (if  (pov (nth s 1))  (pov (nth s 2)) false) 
+        :else false))
+
+;;------------------------------------------------------------
+;; #120 Sum of Square of digits
+;;
+;; Write a function which takes a collection of integers as an
+;; argument. Return the count of how many elements are smaller than
+;; the sum of their squared component digits. For example: 10 is
+;; larger than 1 squared plus 0 squared; whereas 15 is smaller than 1
+;; squared plus 5 squared.
+;;----------------------------------------------------
+(defn ssd [seq]
+  (let [
+      ; @param n  an integer
+      ; @return  a vector of ints containing the digits
+      ;  of the int parameter (eg 245 -> [2 4 5])
+      digits (fn [n] (vec (map #(Integer/parseInt (str %)) (str n))))
+
+      ; @param v a vector of integers
+      ; @return the sum of the squares of the contents of v
+      sumsq (fn [v] (reduce  #(+ % (Math/pow %2 2)) 0 v))]
+
+    (loop [s seq n 0] ;; for every number
+      (if (empty? s) n  ;; if no more numbers return the count
+          (if (< (first  s) ((comp sumsq digits) (first s)) ) 
+            (recur (rest s) (inc n))
+            (recur (rest s) n))))))
+
+(ssd [10 15 25 356 512])
+(time  (ssd (range 1000)))
+
+
+
+;;  the logic above is:
+for every number in a sequence 
+{
+    find the digits
+    find the ss of digits
+    compare ssd to number
+    add to count if number is smaller than the square of its digits
+}
+return the count after processing the last number
+
+;;---  other's solutions
+(time ((fn [xs]
+    (count (keep (fn [x]
+       (if (< x 
+           (reduce + (map #(Math/pow (- (int %) 48) 2) (str x)))
+           ) 1)  ) xs))) (range 1000)))
+
+(time ((fn prob-0120 [ns]
+          (count
+           (for [n ns
+                 :let [sqd-digs (map #(* % %)
+                    (map #(Long/parseLong (str %)) (seq (str n))))]
+                 :when (< n (apply + sqd-digs)) ]
+             n))) (range 1000)))
+
+;;------------------------------------------------------------
+;; #128 Recognize Playing Cards
+; Difficulty:	Easy
+; Topics:	strings game
+
+;A standard American deck of playing cards has four suits - spades,
+;hearts, diamonds, and clubs - and thirteen cards in each suit. Two is
+;the lowest rank, followed by other integers up to ten; then the jack,
+;queen, king, and ace.
+
+;It's convenient for humans to represent these cards as suit/rank
+;pairs, such as H5 or DQ: the heart five and diamond queen
+;respectively. But these forms are not convenient for programmers, so
+;to write a card game you need some way to parse an input string into
+;meaningful components. For purposes of determining rank, we will
+;define the cards to be valued from 0 (the two) to 12 (the ace)
+
+;Write a function which converts (for example) the string "SJ" into a
+;map of {:suit :spade, :rank 9}. A ten will always be represented with
+;the single character "T", rather than the two characters "10".
+
+#_(comment
+(= {:suit :diamond :rank 10} (__ "DQ"))
+
+(= {:suit :heart :rank 3} (__ "H5"))
+
+(= {:suit :club :rank 12} (__ "CA"))
+test not run	
+
+(= (range 13) (map (comp :rank __ str)
+                   '[S2 S3 S4 S5 S6 S7
+                     S8 S9 ST SJ SQ SK SA]))
+)
+;----------------------------------------------------------
+
+(defn card [[suit rank]]
+  {:suit ((zipmap  [\C \D \H \S] [:club :diamond :heart :spade]) suit)
+   :rank ((zipmap (seq "23456789TJQKA") (range 13)) rank)})
+
+(:rank (card "C3"))
+
+(= (range 13) (map (comp :rank card str)
+                   '[S2 S3 S4 S5 S6 S7
+                     S8 S9 ST SJ SQ SK SA]))
+
+;----------------------------------------------------------
+; #100 Least Common Multiple
+; Write a function which calculates the least common multiple. Your
+; function should accept a variable number of positive integers or
+; ratios.
+;
+; 3 5 7 => 105;  3/4 1/6 => 3/2;  7 5/7 2 3/5 => 210
+;----------------------------------------------------------
+
+(defn lcm 
+  "Least common multiple"
+  ([x y]
+   (let [mx (max x y), mn (min x y)]
+     (loop [times 1]
+       (let [ret (* times mx)]
+         (if  (= 0 (rem ret mn)) ret 
+              (recur  (inc times) ))) )))
+  ([x y & z] 
+      (reduce #(lcm % %2) (into [x y]  (into []  z)))))
+
+
+(lcm 7 5/7 2 3/5)
+
+;------------- other's solutions
+
+  
+(fn f [a & b]
+  (loop [i a]
+    (if (every? #(zero? (mod i %)) b)
+      i
+      (recur (+ i a)))))
+
+(fn lcm [& args]
+  (/ (reduce * args)
+     (reduce (fn [m n] (if (zero? n) m (recur n (mod m n)))) args)))
