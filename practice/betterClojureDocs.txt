@@ -1,0 +1,21 @@
+The clojure docs can be pretty sketchy
+
+user> (doc apply)
+-------------------------
+Clojure.core/apply
+([f args] [f x args] [f x y args] [f x y z args] [f a b c d & args])
+  Applies fn f to the argument list formed by prepending intervening arguments to args.
+
+changes:  all the args need to be sequences!
+
+
+----------------------------------------------------------------
+clojure.core/assoc
+([map key val] [map key val & kvs])
+  assoc[iate]. When applied to a map, returns a new map of the
+    same (hashed/sorted) type, that contains the mapping of key(s) to
+    val(s). When applied to a vector, returns a new vector that
+    contains val at index. Note - index must be <= (count vector).
+
+the description refers to "val" and "index" which are not shown 
+in the parameters.

@@ -189,8 +189,7 @@ reduce #(do %2 (+ 1 %)) 0
   )
   (cond (empty? s) nil
         (= 1 (count s)) (first s)
-        :else (getmax (first s) (rest s)))
-)
+        :else (getmax (first s) (rest s))))
 
 
 ;; -- others
@@ -675,7 +674,7 @@ map-indexed #(list %2 %)
 ) inc [1 2 3])
 
 ;;------------------------------------------------------------
-;; #95 Binary Tree?
+;; #95 To Tree, or not to Tree
 ;; Write a predicate which checks whether or not a given
 ;; sequence represents a binary tree. Each node in the tree 
 ;; must have a value, a left child, and a right child.
@@ -688,6 +687,7 @@ map-indexed #(list %2 %)
 ;;  up a java recursion to traverse a binary tree
 ;;  assumed to be valid.
 
+;; pre-order recursive traversal
 (defn po1 [s]
   (cond (= s nil)  true 
         (and (coll? s) (= 3 (count s))) 
@@ -696,13 +696,6 @@ map-indexed #(list %2 %)
 
 (po1 [0 [12 nil nil] [11 [22 nil [31 nil nil] ] [21 nil nil]] ])
 
-
-(defn pov [s]
-  (prn s)
-  (cond (= s nil) true 
-        (and (coll? s) (= 3 (count s))) 
-           (if  (pov (nth s 1))  (pov (nth s 2)) false) 
-        :else false))
 
 ;;------------------------------------------------------------
 ;; #120 Sum of Square of digits
@@ -840,3 +833,353 @@ test not run
 (fn lcm [& args]
   (/ (reduce * args)
      (reduce (fn [m n] (if (zero? n) m (recur n (mod m n)))) args)))
+
+;----------------------------------------------------------
+; #147 Pascal's Trapezoid Write a function that, for any given input
+;; vector of numbers, returns an infinite lazy sequence of vectors, where
+;; each next one is constructed from the previous following the rules
+;; used in Pascal's Triangle. For example, for [3 1 2], the next row
+;; is [3 4 3 2].
+
+;; Beware of arithmetic overflow! In clojure (since version 1.3 in 2011),
+;; if you use an arithmetic operator like + and the result is too large
+;; to fit into a 64-bit integer, an exception is thrown. You can use +'
+;; to indicate that you would rather overflow into Clojure's slower,
+;; arbitrary-precision bigint.
+
+(= (second (__ [2 3 2])) [2 5 5 2])
+
+(= (take 5 (__ [1])) [[1] [1 1] [1 2 1] [1 3 3 1] [1 4 6 4 1]])
+
+(= (take 2 (__ [3 1 2])) [[3 1 2] [3 4 3 2]])
+
+(= (take 100 (__ [2 4 2])) (rest (take 101 (__ [2 2]))))
+;----------------------------------------------------------
+
+;------ here is a great sloution that others used!
+iterate #(vec (map + (conj % 0) (cons 0 %)))
+
+;---------- below is what I wrote
+(take 5 (
+(fn z [seq ] 
+   (iterate 
+     (fn pt [seq]
+       (if (= 1 (count seq)) (conj [] (first seq ) (first seq))
+         (loop [left (first seq), s (rest seq),
+                right (first s), ret []]
+             (if (empty? s) (conj ret left)
+                 (if (empty? ret) 
+                   (recur left,  s, right, [left])
+                   (recur right, (rest s),  (first (next s)),  
+                          (conj ret (+' left right))))))))
+            seq)) [3 1 2]))
+
+;----------------------------------------------------------
+;; #96 Beauty is Symmetry 
+;; Let us define a binary tree as symmetric if the left half of
+;; the tree is the mirror image of the right half of
+;; the tree. Write a predicate to determine whether or not a
+;; given binary tree is symmetric. 
+
+
+
+(= (__ '(:a (:b nil nil) (:b nil nil))) true)
+
+(= (__ '(:a (:b nil nil) nil)) false)
+
+(= (__ '(:a (:b nil nil) (:c nil nil))) false)
+
+(= (__ [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] [5 nil nil]]] nil]])
+   true)
+
+(= (__ [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [5 nil nil] [6 nil nil]]] nil]])
+   false)
+
+(= (__ [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] nil]] nil]])
+   false)
+;----------------------------------------------------------
+;; my solution (not great!) 
+;; Do a pre-order traversal of the tree going first left and
+;; then right and create a vector of each node and leaf as they
+;; are encountered.  Then do it again going first right and then
+;; left.  compare the vectors - if they match we have symmetry. 
+;;
+;  this took many hours over several days to accomplish
+;----------------------------------------------------------
+
+(defn pz [s]
+  (let [ret1 (atom [])  ret2 (atom [])
+        trvrs (fn pozd [s l-r ret] 
+                (cond (= s nil)  (do (swap! ret conj s) @ret) 
+                      (and (coll? s) (= 3 (count s))) 
+                      (do  
+                        (swap! ret conj (first s))
+                        (if  (pozd (nth s (l-r 0)) l-r ret) 
+                          (pozd (nth s (l-r 1)) l-r ret)
+                          false)) 
+                      :else false))]
+    (= (trvrs s [1 2] ret1) (trvrs s [2 1] ret2))
+    ;  (println @ret1)  (println @ret2)
+   ))
+
+
+(= (pz '(:a (:b nil nil) (:b nil nil))) true)
+
+(= (pz '(:a (:b nil nil) nil)) false)
+
+(= (pz '(:a (:b nil nil) (:c nil nil))) false)
+
+(= (pz [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] [5 nil nil]]] nil]])
+   true)
+
+(= (pz [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [5 nil nil] [6 nil nil]]] nil]])
+   false)
+
+(= (pz [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] nil]] nil]])
+   false)
+
+;;--------------------------------------------------------
+;; here is a much nicer solution by leifp.  Which Pablo also
+;; outlined  when I told him the problem
+;; -------------------------------------------------------
+(fn symmetric? [tree]
+  (letfn
+      [(flip [tree]
+         (if (nil? tree)
+           nil
+           (let [[v l r] tree]
+             [v (flip r) (flip l)])))
+       ]
+    (= tree (flip tree))))
+
+;-----------------------------------------------------------
+; #153 pairwise Disjoint sets
+; Given a set of sets, create a function which returns true if no two
+; of those sets have any elements in common1 and false otherwise.
+; Some of the test cases are a bit tricky, so pay a little more
+; attention to them.
+;
+; 1 Such sets are usually called pairwise disjoint
+;   or mutually disjoint.
+;-----------------------------------------------------------
+
+(= (__ #{#{\U} #{\s} #{\e \R \E} #{\P \L} #{\.}})
+   true)
+
+(= (__ #{#{:a :b :c :d :e}
+         #{:a :b :c :d}
+         #{:a :b :c}
+         #{:a :b}
+         #{:a}})
+   false)
+
+(= (__ #{#{[1 2 3] [4 5]}
+         #{[1 2] [3 4 5]}
+         #{[1] [2] 3 4 5}
+         #{1 2 [3 4] [5]}})
+   true)
+
+(= (__ #{#{'a 'b}
+         #{'c 'd 'e}
+         #{'f 'g 'h 'i}
+         #{''a ''c ''f}})
+   true)
+
+(= (__ #{#{'(:x :y :z) '(:x :y) '(:z) '()}
+         #{#{:x :y :z} #{:x :y} #{:z} #{}}
+         #{'[:x :y :z] [:x :y] [:z] [] {}}})
+   false)
+
+(= (__ #{#{(= "true") false}
+         #{:yes :no}
+         #{(class 1) 0}
+         #{(symbol "true") 'false}
+         #{(keyword "yes") ::no}
+         #{(class '1) (int \0)}})
+   false)
+
+(= (__ #{#{distinct?}
+         #{#(-> %) #(-> %)}
+         #{#(-> %) #(-> %) #(-> %)}
+         #{#(-> %) #(-> %) #(-> %)}})
+   true)
+
+(= (__ #{#{(#(-> *)) + (quote mapcat) #_ nil}
+         #{'+ '* mapcat (comment mapcat)}
+         #{(do) set contains? nil?} 
+         #{, , , #_, , empty?}})
+   false)
+
+(= (__ #{#{(#(-> *)) + (quote mapcat) #_ nil}
+         #{'+ '* mapcat (comment mapcat)}
+         #{(do) set contains? nil?}
+         #{, , , #_, , empty?}})
+   false)
+
+
+(use '[clojure.set :as sett])
+
+;;- - my solution took an hour!
+(fn z [s]
+  (= (count (apply clojure.set/union s))
+     (apply + (for [a s] (count a)) )))
+
+;; -- another (better)  solution
+#(apply distinct? (mapcat seq %))
+
+;;-----------------------------------------------------------
+;; #46 Flipping out
+;; Write a higher-order function which flips the order of the
+;; arguments of an input function.
+;;-----------------------------------------------------------
+(= 3 ((__ nth) 2 [1 2 3 4 5]))
+
+(= true ((__ >) 7 8))
+
+(= 4 ((__ quot) 2 8))
+
+(= [1 2 3] ((__ take) [1 2 3 4 5] 3))
+
+;--- solution took about 15 minutes
+
+(defn f [g] (fn [& args] (apply g (reverse args))))
+
+;;-----------------------------------------------------------
+;; #44 Rotate Sequence
+;; Difficulty:	Medium Topics:	seqs
+;; Write a function which can rotate a sequence in either direction.
+;;-----------------------------------------------------------
+(= (__ 2 [1 2 3 4 5]) '(3 4 5 1 2))
+
+(= (__ -2 [1 2 3 4 5]) '(4 5 1 2 3))
+
+(= (__ 6 [1 2 3 4 5]) '(2 3 4 5 1))
+
+(= (__ 1 '(:a :b :c)) '(:b :c :a))
+
+(= (__ -4 '(:a :b :c)) '(:c :a :b))
+;;-------------------------------------------------------------
+
+;--------- my solution
+(defn rs [ndx seq]
+  (let [f (fn [n] (concat (drop n seq) (take n seq)))
+        n (rem ndx (count seq))]
+    (if (pos? n) (f n) (f (+ 1 (- n)))))) 
+
+;-------- but clojure has a very odd (to me) mod operator which
+;--- is perfect fo this problem
+#(let [i (mod % (count %2))] (concat (drop i %2) (take i %2)))
+
+
+;;-------------------------------------------------------------
+;; #43 Reverse Interleave
+;; Difficulty:	Medium  Topics:	seqs
+;;
+;; Write a function which reverses the interleave process into x
+;; number of subsequences.
+
+(= (__ [1 2 3 4 5 6] 2) '((1 3 5) (2 4 6)))
+
+(= (__ (range 9) 3) '((0 3 6) (1 4 7) (2 5 8)))
+
+(= (__ (range 10) 5) '((0 5) (1 6) (2 7) (3 8) (4 9)))
+;;-------------------------------------------------------------
+
+(defn ri [seq cnt]
+  (loop [s seq  ret (repeat cnt [])]
+    (if (empty? s) ret
+        (recur (drop cnt s) 
+           (for [j (range cnt)]
+              (conj (nth ret j) (nth s j)))))))
+
+
+;;----------  better solutions
+
+(fn [coll n] 
+  (for [i (range n)] (take-nth n (nthnext coll i))))
+
+#(apply map list (partition %2 %))
+
+
+;;-------------------------------------------------------------
+;; # 50 Split by Type  Difficulty: Medium Topics: seqs
+
+;;Write a function which takes a sequence consisting of items with
+;;different types and splits them up into a set of homogeneous
+;;sub-sequences. The internal order of each sub-sequence should be
+;;maintained, but the sub-sequences themselves can be returned in any
+;;order (this is why 'set' is used in the test cases).
+
+(= (set (__ [1 :a 2 :b 3 :c])) #{[1 2 3] [:a :b :c]})
+
+(= (set (__ [:a "foo"  "bar" :b])) #{[:a :b] ["foo" "bar"]})
+
+(= (set (__ [[1 2] :a [3 4] 5 6 :b])) #{[[1 2] [3 4]] [:a :b] [5 6]})
+
+
+;;----  this may be the 1st time I used a simple prebiult fn?
+#(vals (group-by type %))
+
+
+;;-------------------------------------------------------------
+Count Occurrences  Difficulty: Medium Topics: seqs core-functions
+Special Restrictions: frequencies
+
+
+;;Write a function which returns a map containing the number of
+;;occurences of each distinct item in a sequence.
+
+(= (__ [1 1 2 3 2 1 1]) {1 4, 2 2, 3 1})
+
+(= (__ [:b :a :b :a :b]) {:a 2, :b 3})
+
+(= (__ '([1 2] [1 3] [1 3])) {[1 2] 1, [1 3] 2})
+;;-------------------------------------------------------------
+
+(defn frq [s]
+  (let [g (group-by identity s)] 
+    (reduce #(assoc % (key %2) (count (val %2))) {} g) ))
+
+;;----------- other's solutions
+
+;;  wow, this is clever!
+reduce #(assoc % %2 (+ 1 (% %2 0))) {}
+
+(fn [s]
+  (into {} 
+    (map (fn [[k v]] [k (count v)]) 
+         (group-by identity s))))
+
+;;-------------------------------------------------------------
+Find Distinct Items Difficulty: Medium Topics: seqs core-functions
+
+;; Write a function which removes the duplicates from a
+;; sequence. Order of the items must be maintained.
+
+(= (__ [1 2 1 3 1 2 4]) [1 2 3 4])
+
+(= (__ [:a :a :b :b :c :c]) [:a :b :c])
+
+(= (__ '([2 4] [1 2] [1 3] [1 3])) '([2 4] [1 2] [1 3]))
+
+(= (__ (range 50)) (range 50))
+;;-------------------------------------------------------------
+
+;;  2 solutions with same logic:
+
+(defn z [s]
+  (loop [s s ret []]
+    (if (empty? s)
+      ret
+      (recur (next s)
+             (if  (some #(= (first s) %) ret) 
+               ret
+               (conj ret (first s)))))))
+
+(reduce (fn [ret x] (if (some #(= x %) ret) ret (conj ret x))) [] [1 2 2 3])
