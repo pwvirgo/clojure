@@ -1183,3 +1183,285 @@ Find Distinct Items Difficulty: Medium Topics: seqs core-functions
                (conj ret (first s)))))))
 
 (reduce (fn [ret x] (if (some #(= x %) ret) ret (conj ret x))) [] [1 2 2 3])
+
+;;-------------------------------------------------------------
+
+#58 Function Composition
+ Difficulty: Medium Topics: higher-order-functions core-functions
+
+;; Write a function which allows you to create function
+;; compositions. The parameter list should take a variable number of
+;; functions, and create a function that applies them from
+;; right-to-left.
+
+(= [3 2 1] ((z rest reverse)  [1 2 3 4]))
+
+(= 5 ((comp (partial + 3) second)  [1 2 3 4]))  
+
+(= true ((z zero? #(mod % 8) +) 3 5 7 9))
+
+(= "HELLO" ((__ #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
+;;-------------------------------------------------------------
+(defn z [& fns]
+  (fn [& args]
+    (loop [s (reverse fns) ret (apply (first s) args)]
+      (if (next s) 
+        (recur (next s) ((first (next s)) ret) )
+        ret))))
+;;-------------------------------------------------------------
+;; #54 Partition a Sequence  Difficulty: Medium  Topics: seqs core-functions
+
+;; Write a function which returns a sequence of lists of x items
+;; each. Lists of less than x items should not be returned.
+
+(= (z  3 (range 9)) '((0 1 2) (3 4 5) (6 7 8)))
+
+(= (z 2 (range 8)) '((0 1) (2 3) (4 5) (6 7)))
+
+(= (z 3 (range 8)) '((0 1 2) (3 4 5)))
+;;-------------------------------------------------------------
+
+(defn z [n seq]
+  (loop [s seq ret []]
+    (if (empty? (drop (- n 1) s )) ret
+        (recur (drop n s), (conj ret (take n s)) ))))
+
+;; other solutions
+(fn p [n x]
+  (if (>= (count x) n)
+    (cons (take n x) (p n (drop n x)))))
+
+;;-------------------------------------------------------------
+;; #59 Juxtaposition
+ 
+Difficulty: Medium Topics: higher-order-functions core-functions
+Special Restrictions juxt
+
+;; Take a set of functions and return a new function that takes a
+;; variable number of arguments and returns a sequence containing the
+;; result of applying each function left-to-right to the argument
+;; list.
+
+(= [21 6 1] ((z + max min) 2 3 5 1 6 4))
+
+(= ["HELLO" 5] ((z #(.toUpperCase %) count) "hello"))
+
+(= [2 6 4] ((z :a :c :b) {:a 2, :b 4, :c 6, :d 8 :e 10}))
+;;-------------------------------------------------------------
+
+(defn z [& fns]
+  (fn [& args]
+    (loop [s fns ret [(apply (first s) args)]]
+      (if (next s) 
+        (recur (next s) (conj ret (apply (first (next s)) args) ) )
+        ret))))
+
+;----- other's solutions
+(fn [& o] (fn [& a] (map #(apply % a) o)))
+
+(fn [& s] #(for [f s] (apply f %&)))
+
+;;-------------------------------------------------------------
+;; #70 Word Sorting Difficulty: Medium Topics: sorting
+
+;; Write a function that splits a sentence up into a sorted list of
+;; words. Capitalization should not affect sort order and punctuation
+;; should be ignored.
+
+(= (z  "Have a nice day.")
+   ["a" "day" "Have" "nice"])
+
+(= (z  "Clojure is a fun language!")
+   ["a" "Clojure" "fun" "is" "language"])
+
+(= (__  "Fools fall for foolish follies.")
+   ["fall" "follies" "foolish" "Fools" "for"])
+;;-------------------------------------------------------------
+
+(defn z [s]
+  (sort-by clojure.string/upper-case (clojure.string/split  s #"[\W+]")))
+
+;;-------------------------------------------------------------
+Prime Numbers Difficulty: Medium Topics: primes
+
+;; Write a function which returns the first x number of prime numbers.
+
+(= (__ 2) [2 3])
+
+(= (__ 5) [2 3 5 7 11])
+
+(= (last (__ 100)) 541)
+;;-------------------------------------------------------------
+;; I hadn't done any programming for several weeks and had to
+;;  remember and re-research clojure - this problem took a few
+;;  hours.
+
+(defn p4 [n]
+  (let [prime? (fn [n]
+    (let [q (Math/sqrt n)]
+      (loop [j 2]
+        (cond (> j q)          true  # no divisor found
+              (= 0 (mod n j))  false # divisor found
+              :else (recur (if (= j 2) (+ j 1) (+ j 2)))))))]
+
+
+    (loop [anum 2, ret (transient [])]
+      (if (> n (count ret))
+        (recur (inc anum), (if (prime? anum) (conj! ret anum) ret))
+        (persistent! ret)))))
+
+;;------------- other's solutions
+(fn n-primes [n]
+  (letfn
+    [(step [[i ps]]
+      (if (some #(= 0 (mod i %)) (take-while #(>= i (* % %)) ps)) ;i not prime
+        (recur [(inc i) ps])
+        [(inc i) (conj ps i)]))]
+    (second (last (take n (iterate step [3 [2]]))))))
+;;--------------------------
+
+#(take %2 (remove (set (for [i % j (range (+ i i) 999 i)] j)) %))
+(range 2 999) 
+
+
+;;-------------------------------------------------------------
+;; #65  Black Box Testing Difficulty: Medium Topics: seqs testing
+
+;; Clojure has many sequence types, which act in subtly different
+;; ways. The core functions typically convert them into a
+;; uniform "sequence" type and work with them that way, but it can be
+;; important to understand the behavioral and performance differences
+;; so that you know which kind is appropriate for your application.
+
+;;Write a function which takes a collection and returns one
+;;of :map, :set, :list, or :vector - describing the type of collection
+;;it was given.
+
+;; You won't be allowed to inspect their class or use the built-in
+;; predicates like list? - the point is to poke at them and understand
+;; their behavior.
+
+(= :map (z {:a 1, :b 2}))
+
+(= :list (z (range (rand-int 20))))
+
+(= :vector (z [1 2 3 4 5 6]))
+
+(= :set (z #{10 (rand-int 5)}))
+
+(= [:map :set :vector :list] (map z [{} #{} [] ()]))
+;;-------------------------------------------------------------
+
+(defn z [s]
+  (let [q1 (conj s [:x 2]), q2 (conj q1 [:x 2]),
+        q3 (conj q2 [:x 3])] 
+       (println q3 " " (count q1) " " (count q2) " "
+                (count q3))
+       (cond (= (count q1) (count q3)) :map
+             (= (count q1) (count q2)) :set
+             (= [:x 3] (last q3))      :vector
+             :else                     :list)))
+
+(defn zall [s1 s2 s3 s4] 
+  (println (z s1) " " (z s2) " " (z s3) " "(z s4)))
+
+
+;;--------- other solutons
+(fn [coll]
+  (let [e (empty coll)]
+    (cond 
+      (identical? e ()) :list
+      (= e []) :vector
+      (= e #{}) :set
+      (= e {}) :map
+      )))
+
+#(cond
+   (= (conj % nil) %) :map 
+   (= (conj % 0) (conj % 0 0)) :set
+   (= (conj % 0 1) (cons 1 (cons 0 %))) :list
+   :else :vector)
+
+#((zipmap (map str [{} #{} () []])
+          [:map :set :list :vector]) (str (empty %)))
+
+
+;;-------------------------------------------------------------
+# 74 Filter Perfect Squares Difficulty: Medium	
+
+;; Given a string of comma separated integers, write a function which
+;; returns a new comma separated string that only contains the numbers
+;; which are perfect squares.
+
+(= (__ "4,5,6,7,8,9") "4,9")
+
+(= (__ "15,16,25,36,37") "16,25,36")
+;;-------------------------------------------------------------
+
+(defn fps [s]
+  (let [pars (map #(Integer/parseInt %) (clojure.string/split s #","))
+        ps? (fn [x] 
+              (if (= (* (int (Math/sqrt x)) (int (Math/sqrt x))) x)
+                true false)) ]
+    (clojure.string/join "," (filter ps? pars))))
+
+;;-------------------------------------------------------------
+
+#76 Intro to Trampoline Difficulty: Medium Topics: recursion
+;; The trampoline function takes a function f and a variable number of
+;; parameters. Trampoline calls f with any parameters that were
+;; supplied. If f returns a function, trampoline calls that function
+;; with no arguments. This is repeated, until the return value is not
+;; a function, and then trampoline returns that non-function
+;; value. This is useful for implementing mutually recursive
+;; algorithms in a way that won't consume the stack.
+;;-------------------------------------------------------------
+
+(= [1 3 5 7 9 11]
+   (letfn
+     [(foo [x y] #(bar (conj x y) y))
+      (bar [x y] (if (> (last x) 10)
+                   x
+                   #(foo x (+ 2 y))))]
+     (trampoline foo [] 1)) )
+
+;;-------------------------------------------------------------
+Anagram Finder  Difficulty: Medium  Topics:
+
+;; Write a function which finds all the anagrams in a vector of
+;; words. A word x is an anagram of word y if all the letters in x can
+;; be rearranged in a different order to form y. Your function should
+;; return a set of sets, where each sub-set is a group of words which
+;; are anagrams of each other. Each sub-set should have at least two
+;; words. Words without any anagrams should not be included in the
+;; result.
+
+(= (__ ["meat" "mat" "team" "mate" "eat"])
+   #{#{"meat" "team" "mate"}})
+
+(= (__ ["veer" "lake" "item" "kale" "mite" "ever"])
+   #{#{"veer" "ever"} #{"lake" "kale"} #{"mite" "item"}})
+;;-------------------------------------------------------------
+
+1 - for each string create a sorted sequence of chars -> skey
+2 - put each string and its skey in a sorted list of tuples
+3 - put each skey in a set
+4 - 
+
+(map sort ["abc" "efg" "aaa"])
+(set (map sort ["abc" "efg" "acb"]))
+
+(update x :b count)
+
+(update x :b #(if (string? %) "yes!"))
+
+(defn z [v]
+  (sort (for [x  v]
+          [(vec (sort x)) x])))
+
+
+
+
+(def gb (group-by first  (z ["ab" "zz" "q5" "ba"])))
+
+(for [x  (gb [\a \b])] (second x))
