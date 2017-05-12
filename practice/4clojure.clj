@@ -1443,25 +1443,28 @@ Anagram Finder  Difficulty: Medium  Topics:
    #{#{"veer" "ever"} #{"lake" "kale"} #{"mite" "item"}})
 ;;-------------------------------------------------------------
 
-1 - for each string create a sorted sequence of chars -> skey
-2 - put each string and its skey in a sorted list of tuples
-3 - put each skey in a set
-4 - 
-
-(map sort ["abc" "efg" "aaa"])
-(set (map sort ["abc" "efg" "acb"]))
-
-(update x :b count)
-
-(update x :b #(if (string? %) "yes!"))
-
 (defn z [v]
-  (sort (for [x  v]
-          [(vec (sort x)) x])))
+  (for [x  v]
+      [ (clojure.string/join (sort x)) x]))
+
+(z ["abc" "e1g" "acca" "bca"])
 
 
+(def gb (group-by first  (z ["abc" "zz" "q5" "bac"])))
 
+(for [x  (gb "abc")] (second x))  
 
-(def gb (group-by first  (z ["ab" "zz" "q5" "ba"])))
+(set (for [x (keys gb)] (set (for [y (gb x)] (second y))))) ;!!!
 
-(for [x  (gb [\a \b])] (second x))
+;; putting all that together in a single function:
+
+;; this took me > 10 hours!  I doubt I'll understand it if I
+;; try to read it in the future! 
+(defn z [v]
+  (let [gb (group-by first (for [x  v]
+             [(clojure.string/join (sort x)) x]))]
+    (set (filter #(> (count %) 1)  (for [y (keys gb)] (set (for [r (gb y)] (second r))))))))
+
+(z ["meat" "mat" "team" "mate" "eat"])
+
+(z ["veer" "lake" "item" "kale" "mite" "ever"])

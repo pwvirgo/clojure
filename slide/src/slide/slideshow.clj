@@ -3,7 +3,8 @@
   (:import (java.io File)
 	   (javax.imageio ImageIO)
 	   (javax.swing JFrame JPanel Timer)
-	   (java.awt Dimension Frame Color)))
+	   (java.awt Dimension Frame Color))
+  (:require [slide.help :as hlp])  )
  
 (def imagelist (atom []))
 (def running (atom true))
@@ -73,16 +74,20 @@
 (defn update-ui [p]
   (while @running
 	 (.repaint p)
-	 (Thread/sleep 5000)))
+	 (Thread/sleep 4000)))
 
 (defn slideshow [dir]
-  (println "hello from slideshow")
+  
+  (println "slideshow: " (hlp/validDir? dir) ) 
+    
   (start-imagelist-population dir)
-  (println @imagelist)
+
+
   (let [panel (make-panel)]
     (doto (JFrame. "Slideshow")
       (.setExtendedState Frame/MAXIMIZED_BOTH)
-      (.setUndecorated true)
+      #_(.setUndecorated true)
+      (.setTitle dir)
       .pack .show
       (.add panel))
     (future (update-ui panel))))

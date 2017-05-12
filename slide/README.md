@@ -1,6 +1,6 @@
 # slide
 
-FIXME: description
+slide: photo screen saver
 
 ## Installation
 
@@ -8,7 +8,11 @@ Download from http://example.com/FIXME.
 
 ## Usage
 
-FIXME: explanation
+slide:
+
+this is how to call:
+
+lein run "/Users/pwv/a/photos/2004/20050502_Colorado/"
 
     $ java -jar slide-0.1.0-standalone.jar [args]
 
