@@ -12,9 +12,13 @@ slide:
 
 this is how to call:
 
-lein run "/Users/pwv/a/photos/2004/20050502_Colorado/"
+* lein run "/Users/pwv/a/photos/2004/20050502_Colorado/"
 
-    $ java -jar slide-0.1.0-standalone.jar [args]
+* In emacs 
+  1.  cider-jack-in C-c C-k in core.cl buffer  
+  2.  in repl buffer (-main  "/Users/pwv/a/photos/2004/20050502_Colorado/")
+  
+  $ java -jar slide-0.1.0-standalone.jar [args]
 
 ## Options
 
